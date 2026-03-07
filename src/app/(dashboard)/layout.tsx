@@ -1,18 +1,11 @@
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
-
-import { authOptions } from "@/server/auth/options";
+import { requireUserSession } from "@/server/auth/session";
 
 export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.id) {
-    redirect("/sign-in");
-  }
+  await requireUserSession();
 
   return <>{children}</>;
 }

@@ -127,3 +127,15 @@ model ApplicationTag {
   @@id([applicationId, tagId])
   @@index([tagId])
 }
+
+model AuthRateLimit {
+  id          String   @id @default(cuid())
+  action      String
+  identifier  String
+  hits        Int      @default(0)
+  windowStart DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([action, identifier])
+  @@index([updatedAt])
+}
