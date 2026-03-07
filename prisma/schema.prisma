@@ -11,3 +11,119 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum ApplicationStatus {
+  WISHLIST
+  APPLIED
+  HR
+  TECHNICAL
+  FINAL
+  OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  applications Application[]
+  tags         Tag[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Application {
+  id             String            @id @default(cuid())
+  userId         String
+  company        String
+  role           String
+  location       String
+  salaryRange    String?
+  jobUrl         String
+  status         ApplicationStatus @default(WISHLIST)
+  notes          String?
+  appliedDate    DateTime
+  nextActionDate DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationTags ApplicationTag[]
+
+  @@index([userId, status])
+  @@index([userId, appliedDate(sort: Desc)])
+  @@index([userId, nextActionDate])
+  @@index([userId, company])
+  @@index([userId, role])
+  @@index([createdAt])
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  applicationTags ApplicationTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model ApplicationTag {
+  applicationId String
+  tagId         String
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  tag         Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([applicationId, tagId])
+  @@index([tagId])
+}
