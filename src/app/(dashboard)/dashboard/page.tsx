@@ -44,14 +44,25 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     ? parsedFilters.data
     : dashboardFiltersSchema.parse({});
 
-  const [applications, tags] = await Promise.all([
+  const [applicationsResult, tagsResult] = await Promise.all([
     listApplicationsForUser(session.user.id, filters),
     listTagsForUser(session.user.id),
   ]);
 
+  const applications = applicationsResult.data;
+  const tags = tagsResult.data;
+  const isDegraded = applicationsResult.degraded || tagsResult.degraded;
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-6 py-10">
       <h1 className="text-3xl font-bold">Dashboard</h1>
+
+      {isDegraded ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Some dashboard data is temporarily unavailable. Please refresh in a moment.
+        </div>
+      ) : null}
+
       <CreateApplicationForm />
 
       <section className="rounded-lg border border-zinc-200 p-4">
