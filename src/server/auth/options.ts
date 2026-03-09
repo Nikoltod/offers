@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
+import { env } from "@/lib/validators/env";
 import { signInSchema } from "@/lib/validators/auth";
 import { comparePassword } from "@/server/auth/password";
 import { enforceRateLimit } from "@/server/auth/rate-limit";
@@ -9,8 +10,10 @@ import { prisma } from "@/server/db/prisma";
 const SIGN_IN_WINDOW_MS = 15 * 60 * 1000;
 const SIGN_IN_MAX_ATTEMPTS = 10;
 const DUMMY_HASH = "$2b$12$JcpOgxRxA0w3QmMfN8jjfOtZwY4dr5xwWQfQXU9Nf2/.vdlN4QOr2";
-const DEMO_EMAIL = "admin@local.dev";
-const DEMO_PASSWORD = "123";
+
+function isDemoCredential(email: string, password: string) {
+  return env.ALLOW_DEMO_AUTH && email === env.DEMO_AUTH_EMAIL && password === env.DEMO_AUTH_PASSWORD;
+}
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -27,6 +30,19 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        const rawEmail =
+          typeof credentials?.email === "string" ? credentials.email.trim().toLowerCase() : "";
+        const rawPassword = typeof credentials?.password === "string" ? credentials.password : "";
+
+        if (isDemoCredential(rawEmail, rawPassword)) {
+          return {
+            id: "demo-admin",
+            email: env.DEMO_AUTH_EMAIL,
+            name: "admin",
+            image: null,
+          };
+        }
+
         const parsed = signInSchema.safeParse(credentials);
         if (!parsed.success) {
           await comparePassword("invalid-password", DUMMY_HASH);
@@ -52,15 +68,6 @@ export const authOptions: NextAuthOptions = {
             where: { email: parsed.data.email },
           });
         } catch {
-          if (parsed.data.email === DEMO_EMAIL && parsed.data.password === DEMO_PASSWORD) {
-            return {
-              id: "demo-admin",
-              email: DEMO_EMAIL,
-              name: "admin",
-              image: null,
-            };
-          }
-
           await comparePassword(parsed.data.password, DUMMY_HASH);
           return null;
         }
@@ -93,11 +100,11 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     session({ session, token }) {
-      if (session.user) {
-        session.user.id = (token.id as string | undefined) ?? "";
+      if (session.user && typeof token.id === "string") {
+        session.user.id = token.id;
       }
       return session;
     },
   },
-  secret: process.env.AUTH_SECRET,
+  secret: env.AUTH_SECRET,
 };

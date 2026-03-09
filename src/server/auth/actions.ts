@@ -3,6 +3,7 @@
 import { Prisma } from "@prisma/client";
 
 import { SignUpInput, signUpSchema } from "@/lib/validators/auth";
+import { env } from "@/lib/validators/env";
 import { hashPassword } from "@/server/auth/password";
 import { enforceRateLimit } from "@/server/auth/rate-limit";
 import { prisma } from "@/server/db/prisma";
@@ -82,9 +83,13 @@ export async function signUpAction(
       error instanceof Prisma.PrismaClientKnownRequestError ||
       error instanceof Prisma.PrismaClientInitializationError
     ) {
+      const message = env.ALLOW_DEMO_AUTH
+        ? `Database is currently unavailable. Use demo login: ${env.DEMO_AUTH_EMAIL} / ${env.DEMO_AUTH_PASSWORD}`
+        : "Database is currently unavailable. Please try again later.";
+
       return {
         success: false,
-        message: "Database is currently unavailable. Use demo login: admin@local.dev / 123",
+        message,
       };
     }
 

@@ -1,3 +1,4 @@
+import { ApplicationStatus } from "@prisma/client";
 import { prisma } from "@/server/db/prisma";
 import { hash } from "bcryptjs";
 
@@ -20,7 +21,7 @@ async function main() {
       data: {
         email: DEMO_USER_EMAIL,
         name: "Demo Admin",
-        password: hashedPassword,
+        passwordHash: hashedPassword,
       },
     });
     console.log("✓ Created demo user:", DEMO_USER_EMAIL);
@@ -44,7 +45,7 @@ async function main() {
       salaryMin: 150000,
       salaryMax: 180000,
       jobUrl: "https://acme.corp/jobs/123",
-      status: "applied" as const,
+      status: ApplicationStatus.APPLIED,
       appliedDate: new Date("2024-01-15"),
       nextActionDate: new Date("2024-01-22"),
       notes: "Great company culture, competitive salary",
@@ -57,7 +58,7 @@ async function main() {
       salaryMin: 120000,
       salaryMax: 140000,
       jobUrl: "https://techstart.io/careers",
-      status: "interview" as const,
+      status: ApplicationStatus.TECHNICAL,
       appliedDate: new Date("2024-01-10"),
       nextActionDate: new Date("2024-01-20"),
       notes: "Second round interview scheduled",
@@ -70,7 +71,7 @@ async function main() {
       salaryMin: 130000,
       salaryMax: 160000,
       jobUrl: "https://cloudscale.io/jobs/456",
-      status: "rejected" as const,
+      status: ApplicationStatus.REJECTED,
       appliedDate: new Date("2024-01-05"),
       nextActionDate: null,
       notes: "Rejected after coding challenge",
@@ -83,7 +84,7 @@ async function main() {
       salaryMin: 140000,
       salaryMax: 170000,
       jobUrl: "https://dataflow.org/careers",
-      status: "offer" as const,
+      status: ApplicationStatus.OFFER,
       appliedDate: new Date("2023-12-20"),
       nextActionDate: new Date("2024-01-25"),
       notes: "Offer received, evaluating benefits package",
@@ -96,7 +97,7 @@ async function main() {
       salaryMin: 110000,
       salaryMax: 135000,
       jobUrl: "https://mobilefirst.ai/jobs",
-      status: "applied" as const,
+      status: ApplicationStatus.APPLIED,
       appliedDate: new Date("2024-01-18"),
       nextActionDate: new Date("2024-02-01"),
       notes: "Focus on mobile-first products",
@@ -109,7 +110,7 @@ async function main() {
       salaryMin: 160000,
       salaryMax: 190000,
       jobUrl: "https://finserve.com/careers/rust",
-      status: "interview" as const,
+      status: ApplicationStatus.HR,
       appliedDate: new Date("2024-01-08"),
       nextActionDate: new Date("2024-01-28"),
       notes: "First round completed, awaiting final round invite",
@@ -122,7 +123,7 @@ async function main() {
       salaryMin: 180000,
       salaryMax: 220000,
       jobUrl: "https://openai.com/careers",
-      status: "applied" as const,
+      status: ApplicationStatus.APPLIED,
       appliedDate: new Date("2024-01-12"),
       nextActionDate: new Date("2024-02-05"),
       notes: "Applied through referral, researching team",
@@ -135,7 +136,7 @@ async function main() {
       salaryMin: 125000,
       salaryMax: 155000,
       jobUrl: "https://greenenergy.io/jobs",
-      status: "applied" as const,
+      status: ApplicationStatus.APPLIED,
       appliedDate: new Date("2024-01-16"),
       nextActionDate: new Date("2024-01-30"),
       notes: "Strong mission alignment, sustainable tech focus",
@@ -145,10 +146,11 @@ async function main() {
 
   let createdCount = 0;
   for (const appData of sampleApps) {
-    const { tags, ...appFields } = appData;
+    const { tags, salaryMin, salaryMax, ...appFields } = appData;
     const app = await prisma.application.create({
       data: {
         ...appFields,
+        salaryRange: `$${salaryMin.toLocaleString()} - $${salaryMax.toLocaleString()}`,
         userId: user.id,
       },
     });
