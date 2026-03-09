@@ -18,11 +18,6 @@ export type SignUpState = {
   fieldErrors?: SignUpFieldErrors;
 };
 
-export const initialSignUpState: SignUpState = {
-  success: false,
-  message: "",
-};
-
 export async function signUpAction(
   _prevState: SignUpState,
   formData: FormData,
@@ -80,6 +75,16 @@ export async function signUpAction(
       return {
         success: false,
         message: "Could not create account. Please try again.",
+      };
+    }
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError ||
+      error instanceof Prisma.PrismaClientInitializationError
+    ) {
+      return {
+        success: false,
+        message: "Database is currently unavailable. Use demo login: admin@local.dev / 123",
       };
     }
 

@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 
-import { initialSignUpState, signUpAction } from "@/server/auth/actions";
+import { signUpAction } from "@/server/auth/actions";
+import type { SignUpState } from "@/server/auth/actions";
+
+const initialSignUpState: SignUpState = {
+  success: false,
+  message: "",
+};
 
 function SubmitButton() {
   const { pending } = useFormStatus();

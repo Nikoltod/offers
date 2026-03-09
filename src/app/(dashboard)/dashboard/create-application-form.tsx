@@ -4,10 +4,13 @@ import { ApplicationStatus } from "@prisma/client";
 import { useEffect, useMemo, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 
-import {
-  createApplicationAction,
-  initialCreateApplicationState,
-} from "@/server/applications/actions";
+import { createApplicationAction } from "@/server/applications/actions";
+import type { CreateApplicationState } from "@/server/applications/actions";
+
+const initialCreateApplicationState: CreateApplicationState = {
+  success: false,
+  message: "",
+};
 
 function SubmitButton() {
   const { pending } = useFormStatus();

@@ -1,17 +1,139 @@
 import Link from "next/link";
+import { ApplicationStatus } from "@prisma/client";
 
 import { CreateApplicationForm } from "./create-application-form";
+import { DASHBOARD_SORT_CONFIG, DashboardSort } from "@/lib/constants/dashboard-sort";
+import { dashboardFiltersSchema } from "@/lib/validators/dashboard-filters";
 import { requireUserSession } from "@/server/auth/session";
-import { listApplicationsForUser } from "@/server/applications/queries";
+import { listApplicationsForUser, listTagsForUser } from "@/server/applications/queries";
 
-export default async function DashboardPage() {
+type DashboardPageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
+
+const statusOptions = ["ALL", ...Object.values(ApplicationStatus)] as const;
+
+const sortOptions = Object.entries(DASHBOARD_SORT_CONFIG).map(([value, config]) => ({
+  value: value as DashboardSort,
+  label: config.label,
+}));
+
+function firstQueryValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function formatStatusLabel(status: string) {
+  if (status === "ALL") {
+    return "All statuses";
+  }
+
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
+
+export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const session = await requireUserSession();
-  const applications = await listApplicationsForUser(session.user.id);
+
+  const parsedFilters = dashboardFiltersSchema.safeParse({
+    q: firstQueryValue(searchParams?.q),
+    status: firstQueryValue(searchParams?.status),
+    tag: firstQueryValue(searchParams?.tag),
+    sort: firstQueryValue(searchParams?.sort),
+  });
+
+  const filters = parsedFilters.success
+    ? parsedFilters.data
+    : dashboardFiltersSchema.parse({});
+
+  const [applications, tags] = await Promise.all([
+    listApplicationsForUser(session.user.id, filters),
+    listTagsForUser(session.user.id),
+  ]);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-6 py-10">
       <h1 className="text-3xl font-bold">Dashboard</h1>
       <CreateApplicationForm />
+
+      <section className="rounded-lg border border-zinc-200 p-4">
+        <form method="get" className="grid gap-4 md:grid-cols-4">
+          <div className="space-y-1 md:col-span-2">
+            <label htmlFor="q" className="block text-sm font-medium">
+              Search
+            </label>
+            <input
+              id="q"
+              name="q"
+              defaultValue={filters.q}
+              placeholder="Company or role"
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-700"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="status" className="block text-sm font-medium">
+              Status
+            </label>
+            <select
+              id="status"
+              name="status"
+              defaultValue={filters.status}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-700"
+            >
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {formatStatusLabel(status)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="sort" className="block text-sm font-medium">
+              Sort
+            </label>
+            <select
+              id="sort"
+              name="sort"
+              defaultValue={filters.sort}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-700"
+            >
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1 md:col-span-2">
+            <label htmlFor="tag" className="block text-sm font-medium">
+              Tag
+            </label>
+            <select
+              id="tag"
+              name="tag"
+              defaultValue={filters.tag ?? ""}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-700"
+            >
+              <option value="">All tags</option>
+              {tags.map((tag) => (
+                <option key={tag.id} value={tag.name}>
+                  {tag.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="md:col-span-2 flex items-end gap-2">
+            <button type="submit" className="rounded-md bg-black px-4 py-2 text-white">
+              Apply
+            </button>
+            <Link href="/dashboard" className="rounded-md border border-zinc-300 px-4 py-2 text-sm">
+              Reset
+            </Link>
+          </div>
+        </form>
+      </section>
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Your applications ({applications.length})</h2>

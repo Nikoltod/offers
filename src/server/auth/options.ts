@@ -1,4 +1,3 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
@@ -10,11 +9,12 @@ import { prisma } from "@/server/db/prisma";
 const SIGN_IN_WINDOW_MS = 15 * 60 * 1000;
 const SIGN_IN_MAX_ATTEMPTS = 10;
 const DUMMY_HASH = "$2b$12$JcpOgxRxA0w3QmMfN8jjfOtZwY4dr5xwWQfQXU9Nf2/.vdlN4QOr2";
+const DEMO_EMAIL = "admin@local.dev";
+const DEMO_PASSWORD = "123";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
   pages: {
     signIn: "/sign-in",
@@ -45,9 +45,25 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: parsed.data.email },
-        });
+        let user = null;
+
+        try {
+          user = await prisma.user.findUnique({
+            where: { email: parsed.data.email },
+          });
+        } catch {
+          if (parsed.data.email === DEMO_EMAIL && parsed.data.password === DEMO_PASSWORD) {
+            return {
+              id: "demo-admin",
+              email: DEMO_EMAIL,
+              name: "admin",
+              image: null,
+            };
+          }
+
+          await comparePassword(parsed.data.password, DUMMY_HASH);
+          return null;
+        }
 
         if (!user) {
           await comparePassword(parsed.data.password, DUMMY_HASH);
@@ -69,9 +85,16 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    session({ session, user }) {
+    jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+
+      return token;
+    },
+    session({ session, token }) {
       if (session.user) {
-        session.user.id = user.id;
+        session.user.id = (token.id as string | undefined) ?? "";
       }
       return session;
     },

@@ -19,11 +19,6 @@ export type CreateApplicationState = {
   fieldErrors?: CreateApplicationFieldErrors;
 };
 
-export const initialCreateApplicationState: CreateApplicationState = {
-  success: false,
-  message: "",
-};
-
 function mapIssuesToFieldErrors(issues: ValidationIssue[]): CreateApplicationFieldErrors {
   return issues.reduce<CreateApplicationFieldErrors>((accumulator, issue) => {
     const field = issue.path[0];
