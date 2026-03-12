@@ -55,7 +55,7 @@ export const createApplicationSchema = z
   .superRefine((data, context) => {
     if (data.nextActionDate && data.nextActionDate < data.appliedDate) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["nextActionDate"],
         message: "Next action date cannot be earlier than applied date",
       });

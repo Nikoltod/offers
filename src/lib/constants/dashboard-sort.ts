@@ -1,3 +1,10 @@
+import { Prisma } from "@prisma/client";
+
+type SortConfigEntry = {
+  label: string;
+  orderBy: Prisma.ApplicationOrderByWithRelationInput;
+};
+
 export const DASHBOARD_SORT_CONFIG = {
   "created-desc": {
     label: "Newest created",
@@ -23,7 +30,7 @@ export const DASHBOARD_SORT_CONFIG = {
     label: "Company Z-A",
     orderBy: { company: "desc" as const },
   },
-} as const;
+} as const satisfies Record<string, SortConfigEntry>;
 
 export type DashboardSort = keyof typeof DASHBOARD_SORT_CONFIG;
 

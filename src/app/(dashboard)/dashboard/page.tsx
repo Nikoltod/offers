@@ -30,6 +30,43 @@ function formatStatusLabel(status: string) {
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
+function buildDashboardHref(
+  filters: {
+    q?: string;
+    status: string;
+    tag?: string;
+    sort: string;
+    pageSize: number;
+  },
+  page: number,
+) {
+  const params = new URLSearchParams();
+
+  if (filters.q) {
+    params.set("q", filters.q);
+  }
+
+  if (filters.status !== "ALL") {
+    params.set("status", filters.status);
+  }
+
+  if (filters.tag) {
+    params.set("tag", filters.tag);
+  }
+
+  if (filters.sort) {
+    params.set("sort", filters.sort);
+  }
+
+  if (filters.pageSize !== 20) {
+    params.set("pageSize", String(filters.pageSize));
+  }
+
+  params.set("page", String(page));
+
+  return `/dashboard?${params.toString()}`;
+}
+
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const session = await requireUserSession();
 
@@ -38,6 +75,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     status: firstQueryValue(searchParams?.status),
     tag: firstQueryValue(searchParams?.tag),
     sort: firstQueryValue(searchParams?.sort),
+    page: firstQueryValue(searchParams?.page),
+    pageSize: firstQueryValue(searchParams?.pageSize),
   });
 
   const filters = parsedFilters.success
@@ -49,9 +88,15 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     listTagsForUser(session.user.id),
   ]);
 
-  const applications = applicationsResult.data;
+  const applications = applicationsResult.data.items;
+  const totalCount = applicationsResult.data.totalCount;
+  const page = applicationsResult.data.page;
+  const totalPages = applicationsResult.data.totalPages;
   const tags = tagsResult.data;
   const isDegraded = applicationsResult.degraded || tagsResult.degraded;
+
+  const previousPageHref = buildDashboardHref(filters, Math.max(1, page - 1));
+  const nextPageHref = buildDashboardHref(filters, Math.min(totalPages, page + 1));
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-6 py-10">
@@ -67,6 +112,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       <section className="rounded-lg border border-zinc-200 p-4">
         <form method="get" className="grid gap-4 md:grid-cols-4">
+          <input type="hidden" name="page" value="1" />
+
           <div className="space-y-1 md:col-span-2">
             <label htmlFor="q" className="block text-sm font-medium">
               Search
@@ -147,7 +194,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Your applications ({applications.length})</h2>
+        <h2 className="text-lg font-semibold">Your applications ({totalCount})</h2>
 
         {applications.length === 0 ? (
           <div className="rounded-lg border border-zinc-200 p-4 text-sm text-zinc-700">
@@ -205,6 +252,42 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </table>
           </div>
         )}
+
+        {totalCount > 0 ? (
+          <div className="flex items-center justify-between text-sm text-zinc-700">
+            <p>
+              Page {page} of {totalPages}
+            </p>
+
+            <div className="flex items-center gap-2">
+              {page > 1 ? (
+                <Link
+                  href={previousPageHref}
+                  className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
+                >
+                  Previous
+                </Link>
+              ) : (
+                <span className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-400">
+                  Previous
+                </span>
+              )}
+
+              {page < totalPages ? (
+                <Link
+                  href={nextPageHref}
+                  className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
+                >
+                  Next
+                </Link>
+              ) : (
+                <span className="rounded-md border border-zinc-200 px-3 py-1.5 text-zinc-400">
+                  Next
+                </span>
+              )}
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );

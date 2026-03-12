@@ -10,6 +10,14 @@ type QueryResult<TData> = {
   degraded: boolean;
 };
 
+type PaginatedApplications = {
+  items: ApplicationWithTags[];
+  totalCount: number;
+  totalPages: number;
+  page: number;
+  pageSize: number;
+};
+
 type ApplicationWithTags = Prisma.ApplicationGetPayload<{
   include: {
     applicationTags: {
@@ -26,13 +34,13 @@ type UserTag = {
 };
 
 function mapSortToOrderBy(sort: ApplicationQueryFilters["sort"]) {
-  return DASHBOARD_SORT_CONFIG[sort].orderBy as Prisma.ApplicationOrderByWithRelationInput;
+  return DASHBOARD_SORT_CONFIG[sort].orderBy;
 }
 
 export async function listApplicationsForUser(
   userId: string,
   filters: ApplicationQueryFilters,
-): Promise<QueryResult<ApplicationWithTags[]>> {
+): Promise<QueryResult<PaginatedApplications>> {
   const where: Prisma.ApplicationWhereInput = {
     userId,
     ...(filters.q
@@ -68,20 +76,35 @@ export async function listApplicationsForUser(
   };
 
   try {
-    const data = await prisma.application.findMany({
-      where,
-      include: {
-        applicationTags: {
-          include: {
-            tag: true,
+    const skip = (filters.page - 1) * filters.pageSize;
+
+    const [items, totalCount] = await prisma.$transaction([
+      prisma.application.findMany({
+        where,
+        include: {
+          applicationTags: {
+            include: {
+              tag: true,
+            },
           },
         },
-      },
-      orderBy: mapSortToOrderBy(filters.sort),
-    });
+        orderBy: mapSortToOrderBy(filters.sort),
+        skip,
+        take: filters.pageSize,
+      }),
+      prisma.application.count({ where }),
+    ]);
+
+    const totalPages = totalCount === 0 ? 1 : Math.ceil(totalCount / filters.pageSize);
 
     return {
-      data,
+      data: {
+        items,
+        totalCount,
+        totalPages,
+        page: filters.page,
+        pageSize: filters.pageSize,
+      },
       degraded: false,
     };
   } catch (error) {
@@ -92,7 +115,13 @@ export async function listApplicationsForUser(
     });
 
     return {
-      data: [],
+      data: {
+        items: [],
+        totalCount: 0,
+        totalPages: 1,
+        page: filters.page,
+        pageSize: filters.pageSize,
+      },
       degraded: true,
     };
   }
