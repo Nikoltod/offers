@@ -35,21 +35,6 @@ function mapIssuesToFieldErrors(issues: ValidationIssue[]): CreateApplicationFie
   }, {});
 }
 
-function normalizeTagNames(rawTags?: string): string[] {
-  if (!rawTags) {
-    return [];
-  }
-
-  const unique = new Set(
-    rawTags
-      .split(",")
-      .map((value) => value.trim().toLowerCase())
-      .filter(Boolean),
-  );
-
-  return Array.from(unique).slice(0, 10);
-}
-
 export async function createApplicationAction(
   _prevState: CreateApplicationState,
   formData: FormData,
@@ -78,7 +63,7 @@ export async function createApplicationAction(
   }
 
   try {
-    const tagNames = normalizeTagNames(parsed.data.tags);
+    const tagNames = parsed.data.tags;
 
     await prisma.$transaction(async (transaction) => {
       const application = await transaction.application.create({

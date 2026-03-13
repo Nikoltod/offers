@@ -33,6 +33,30 @@ function isSupportedHttpUrl(value: string) {
   }
 }
 
+const normalizedTagsSchema = z
+  .string()
+  .trim()
+  .max(200)
+  .optional()
+  .transform((value) => {
+    if (!value) {
+      return [] as string[];
+    }
+
+    const normalized = value
+      .split(",")
+      .map((tag) => tag.trim().toLowerCase())
+      .filter(Boolean);
+
+    return Array.from(new Set(normalized));
+  })
+  .refine((tags) => tags.length <= 10, {
+    message: "At most 10 tags are allowed",
+  })
+  .refine((tags) => tags.every((tag) => tag.length <= 30), {
+    message: "Each tag must be at most 30 characters",
+  });
+
 export const createApplicationSchema = z
   .object({
     company: z.string().trim().min(1, "Company is required").max(200),
@@ -50,7 +74,7 @@ export const createApplicationSchema = z
     notes: z.string().trim().max(2000).optional().transform((value) => value || undefined),
     appliedDate: requiredDateSchema,
     nextActionDate: optionalDateSchema,
-    tags: z.string().trim().max(200).optional().transform((value) => value || undefined),
+    tags: normalizedTagsSchema,
   })
   .superRefine((data, context) => {
     if (data.nextActionDate && data.nextActionDate < data.appliedDate) {
