@@ -76,33 +76,31 @@ export async function listApplicationsForUser(
   };
 
   try {
-    const skip = (filters.page - 1) * filters.pageSize;
+    const totalCount = await prisma.application.count({ where });
+    const totalPages = totalCount === 0 ? 1 : Math.ceil(totalCount / filters.pageSize);
+    const currentPage = Math.min(filters.page, totalPages);
+    const skip = (currentPage - 1) * filters.pageSize;
 
-    const [items, totalCount] = await prisma.$transaction([
-      prisma.application.findMany({
-        where,
-        include: {
-          applicationTags: {
-            include: {
-              tag: true,
-            },
+    const items = await prisma.application.findMany({
+      where,
+      include: {
+        applicationTags: {
+          include: {
+            tag: true,
           },
         },
-        orderBy: mapSortToOrderBy(filters.sort),
-        skip,
-        take: filters.pageSize,
-      }),
-      prisma.application.count({ where }),
-    ]);
-
-    const totalPages = totalCount === 0 ? 1 : Math.ceil(totalCount / filters.pageSize);
+      },
+      orderBy: mapSortToOrderBy(filters.sort),
+      skip,
+      take: filters.pageSize,
+    });
 
     return {
       data: {
         items,
         totalCount,
         totalPages,
-        page: filters.page,
+        page: currentPage,
         pageSize: filters.pageSize,
       },
       degraded: false,
