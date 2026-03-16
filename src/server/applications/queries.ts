@@ -34,7 +34,7 @@ type UserTag = {
 };
 
 function mapSortToOrderBy(sort: ApplicationQueryFilters["sort"]) {
-  return DASHBOARD_SORT_CONFIG[sort].orderBy;
+  return [DASHBOARD_SORT_CONFIG[sort].orderBy, { id: "asc" as const }];
 }
 
 export async function listApplicationsForUser(
