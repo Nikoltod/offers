@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ApplicationStatus } from "@prisma/client";
+import { redirect } from "next/navigation";
 
 import { CreateApplicationForm } from "./create-application-form";
 import {
@@ -101,6 +102,10 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   const previousPageHref = buildDashboardHref(filters, Math.max(1, page - 1));
   const nextPageHref = buildDashboardHref(filters, Math.min(totalPages, page + 1));
+  
+  if (!isDegraded && filters.page !== page) {
+    redirect(buildDashboardHref(filters, page));
+  }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 px-6 py-10">
