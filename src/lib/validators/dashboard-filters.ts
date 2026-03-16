@@ -2,6 +2,10 @@ import { ApplicationStatus } from "@prisma/client";
 import { z } from "zod";
 
 import {
+  DASHBOARD_DEFAULT_PAGE_SIZE,
+  DASHBOARD_PAGE_SIZE_VALUES,
+} from "@/lib/constants/dashboard-pagination";
+import {
   DASHBOARD_DEFAULT_SORT,
   DASHBOARD_SORT_VALUES,
 } from "@/lib/constants/dashboard-sort";
@@ -33,7 +37,9 @@ const pageSizeParam = z.preprocess((value) => {
   }
 
   return value;
-}, z.number().int().min(1).max(50));
+}, z.number().int().refine((value) => DASHBOARD_PAGE_SIZE_VALUES.includes(value as (typeof DASHBOARD_PAGE_SIZE_VALUES)[number]), {
+  message: "Invalid page size",
+}));
 
 export const dashboardFiltersSchema = z.object({
   q: z.string().trim().max(100).optional().transform((value) => value || undefined),
@@ -44,7 +50,7 @@ export const dashboardFiltersSchema = z.object({
   tag: z.string().trim().max(50).optional().transform((value) => value || undefined),
   sort: z.enum(DASHBOARD_SORT_VALUES).optional().default(DASHBOARD_DEFAULT_SORT),
   page: positiveIntParam.optional().default(1),
-  pageSize: pageSizeParam.optional().default(20),
+  pageSize: pageSizeParam.optional().default(DASHBOARD_DEFAULT_PAGE_SIZE),
 });
 
 export type DashboardFilters = z.infer<typeof dashboardFiltersSchema>;

@@ -2,6 +2,10 @@ import Link from "next/link";
 import { ApplicationStatus } from "@prisma/client";
 
 import { CreateApplicationForm } from "./create-application-form";
+import {
+  DASHBOARD_DEFAULT_PAGE_SIZE,
+  DASHBOARD_PAGE_SIZE_VALUES,
+} from "@/lib/constants/dashboard-pagination";
 import { DASHBOARD_SORT_CONFIG, DashboardSort } from "@/lib/constants/dashboard-sort";
 import { dashboardFiltersSchema } from "@/lib/validators/dashboard-filters";
 import { requireUserSession } from "@/server/auth/session";
@@ -58,7 +62,7 @@ function buildDashboardHref(
     params.set("sort", filters.sort);
   }
 
-  if (filters.pageSize !== 20) {
+  if (filters.pageSize !== DASHBOARD_DEFAULT_PAGE_SIZE) {
     params.set("pageSize", String(filters.pageSize));
   }
 
@@ -158,6 +162,24 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               {sortOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="pageSize" className="block text-sm font-medium">
+              Per page
+            </label>
+            <select
+              id="pageSize"
+              name="pageSize"
+              defaultValue={String(filters.pageSize)}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-700"
+            >
+              {DASHBOARD_PAGE_SIZE_VALUES.map((pageSize) => (
+                <option key={pageSize} value={pageSize}>
+                  {pageSize}
                 </option>
               ))}
             </select>
