@@ -3,7 +3,7 @@ import { prisma } from "@/server/db/prisma";
 import { hash } from "bcryptjs";
 
 const DEMO_USER_EMAIL = "admin@local.dev";
-const DEMO_USER_PASSWORD = "123";
+const DEMO_USER_PASSWORD = "password123";
 
 const demoPostings = [
   {

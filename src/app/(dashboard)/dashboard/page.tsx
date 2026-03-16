@@ -246,9 +246,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   <tr key={application.id}>
                     <td className="px-4 py-3">
                       <Link
-                        href={application.jobUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={`/dashboard/${application.id}`}
                         className="underline"
                       >
                         {application.company}

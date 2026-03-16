@@ -131,6 +131,22 @@ export async function listApplicationsForUser(
   }
 }
 
+export type { ApplicationWithTags };
+
+export async function getApplicationForUser(
+  userId: string,
+  id: string,
+): Promise<ApplicationWithTags | null> {
+  return prisma.application.findFirst({
+    where: { id, userId },
+    include: {
+      applicationTags: {
+        include: { tag: true },
+      },
+    },
+  });
+}
+
 export async function listTagsForUser(userId: string): Promise<QueryResult<UserTag[]>> {
   try {
     const data = await prisma.tag.findMany({
