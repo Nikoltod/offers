@@ -15,6 +15,8 @@ const applicationStatusValues = Object.values(ApplicationStatus) as [
   ...ApplicationStatus[],
 ];
 
+const DASHBOARD_MAX_PAGE = 1000;
+
 const positiveIntParam = z.preprocess((value) => {
   if (value === undefined || value === "") {
     return undefined;
@@ -26,6 +28,18 @@ const positiveIntParam = z.preprocess((value) => {
 
   return value;
 }, z.number().int().min(1));
+
+const pageParam = z.preprocess((value) => {
+  if (value === undefined || value === "") {
+    return undefined;
+  }
+
+  if (typeof value === "string") {
+    return Number(value);
+  }
+
+  return value;
+}, z.number().int().min(1).max(DASHBOARD_MAX_PAGE));
 
 const pageSizeParam = z.preprocess((value) => {
   if (value === undefined || value === "") {
@@ -49,7 +63,7 @@ export const dashboardFiltersSchema = z.object({
     .default("ALL"),
   tag: z.string().trim().max(50).optional().transform((value) => value || undefined),
   sort: z.enum(DASHBOARD_SORT_VALUES).optional().default(DASHBOARD_DEFAULT_SORT),
-  page: positiveIntParam.optional().default(1),
+  page: pageParam.optional().default(1),
   pageSize: pageSizeParam.optional().default(DASHBOARD_DEFAULT_PAGE_SIZE),
 });
 
