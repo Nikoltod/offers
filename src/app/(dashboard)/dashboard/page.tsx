@@ -97,6 +97,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   const totalCount = applicationsResult.data.totalCount;
   const page = applicationsResult.data.page;
   const totalPages = applicationsResult.data.totalPages;
+  const hasPreviousPage = applicationsResult.data.hasPreviousPage;
+  const hasNextPage = applicationsResult.data.hasNextPage;
   const tags = tagsResult.data;
   const isDegraded = applicationsResult.degraded || tagsResult.degraded;
 
@@ -287,7 +289,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </p>
 
             <div className="flex items-center gap-2">
-              {page > 1 ? (
+              {hasPreviousPage ? (
                 <Link
                   href={previousPageHref}
                   className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm"
@@ -300,7 +302,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 </span>
               )}
 
-              {page < totalPages ? (
+              {hasNextPage ? (
                 <Link
                   href={nextPageHref}
                   className="rounded-md border border-zinc-300 px-3 py-1.5 text-sm"

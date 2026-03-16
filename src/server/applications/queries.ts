@@ -16,6 +16,8 @@ type PaginatedApplications = {
   totalPages: number;
   page: number;
   pageSize: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
 };
 
 type ApplicationWithTags = Prisma.ApplicationGetPayload<{
@@ -102,6 +104,8 @@ export async function listApplicationsForUser(
         totalPages,
         page: currentPage,
         pageSize: filters.pageSize,
+        hasPreviousPage: currentPage > 1,
+        hasNextPage: currentPage < totalPages,
       },
       degraded: false,
     };
@@ -119,6 +123,8 @@ export async function listApplicationsForUser(
         totalPages: 1,
         page: filters.page,
         pageSize: filters.pageSize,
+        hasPreviousPage: false,
+        hasNextPage: false,
       },
       degraded: true,
     };
