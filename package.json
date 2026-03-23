@@ -12,11 +12,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "ci": "npm run lint && npm run typecheck && npm run build",
     "typecheck": "tsc --noEmit",
     "seed": "NODE_OPTIONS='-r dotenv/config' npx tsx scripts/seed.ts",
+    "bootstrap:admin": "NODE_OPTIONS='-r dotenv/config' npx tsx scripts/bootstrap-admin.ts",
     "prisma:format": "prisma format",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio"
   },
   "dependencies": {

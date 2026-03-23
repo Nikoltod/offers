@@ -5,6 +5,10 @@ import { hash } from "bcryptjs";
 const DEMO_USER_EMAIL = "admin@local.dev";
 const DEMO_USER_PASSWORD = "password123";
 
+function isProdSeedAllowed() {
+  return process.env.ALLOW_PROD_SEED === "true";
+}
+
 const demoPostings = [
   {
     company: "Northstar Labs",
@@ -69,6 +73,10 @@ const demoPostings = [
 ] as const;
 
 async function main() {
+  if (process.env.NODE_ENV === "production" && !isProdSeedAllowed()) {
+    throw new Error("Refusing to run demo seed in production. Set ALLOW_PROD_SEED=true to override.");
+  }
+
   console.log("🌱 Starting seed...");
 
   // Create demo user if not exists
