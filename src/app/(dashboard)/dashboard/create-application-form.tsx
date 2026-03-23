@@ -1,7 +1,7 @@
 "use client";
 
 import { ApplicationStatus } from "@prisma/client";
-import { useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 
 import { createApplicationAction } from "@/server/applications/actions";
@@ -29,7 +29,7 @@ function SubmitButton() {
 const statusOptions = Object.values(ApplicationStatus);
 
 export function CreateApplicationForm() {
-  const [state, action] = useFormState(createApplicationAction, initialCreateApplicationState);
+  const [state, action] = useActionState(createApplicationAction, initialCreateApplicationState);
   const [formKey, setFormKey] = useState(0);
 
   useEffect(() => {
