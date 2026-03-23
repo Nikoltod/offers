@@ -1,8 +1,8 @@
 "use client";
 
 import { ApplicationStatus } from "@prisma/client";
-import { useActionState, useEffect, useMemo, useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useEffect, useMemo, useRef } from "react";
+import { useFormStatus } from "react-dom";
 
 import { createApplicationAction } from "@/server/applications/actions";
 import type { CreateApplicationState } from "@/server/applications/actions";
@@ -30,11 +30,11 @@ const statusOptions = Object.values(ApplicationStatus);
 
 export function CreateApplicationForm() {
   const [state, action] = useActionState(createApplicationAction, initialCreateApplicationState);
-  const [formKey, setFormKey] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (state.success) {
-      setFormKey((key) => key + 1);
+      formRef.current?.reset();
     }
   }, [state.success]);
 
@@ -47,7 +47,7 @@ export function CreateApplicationForm() {
   );
 
   return (
-    <form key={formKey} action={action} className="space-y-4 rounded-lg border border-zinc-200 p-4">
+    <form ref={formRef} action={action} className="space-y-4 rounded-lg border border-zinc-200 p-4">
       <h2 className="text-lg font-semibold">New application</h2>
 
       <div className="grid gap-4 md:grid-cols-2">

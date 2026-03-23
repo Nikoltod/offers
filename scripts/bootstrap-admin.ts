@@ -2,22 +2,24 @@ import { hash } from "bcryptjs";
 
 import { prisma } from "@/server/db/prisma";
 
-const BOOTSTRAP_ADMIN_EMAIL = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
-const BOOTSTRAP_ADMIN_PASSWORD = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+function getBootstrapEnv() {
+  const email = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
 
-function assertBootstrapEnv() {
-  if (!BOOTSTRAP_ADMIN_EMAIL || !BOOTSTRAP_ADMIN_PASSWORD) {
+  if (!email || !password) {
     throw new Error(
       "BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD are required for bootstrap-admin",
     );
   }
+
+  return { email, password };
 }
 
 async function main() {
-  assertBootstrapEnv();
+  const { email, password } = getBootstrapEnv();
 
   const existingUser = await prisma.user.findUnique({
-    where: { email: BOOTSTRAP_ADMIN_EMAIL },
+    where: { email },
     select: { id: true, email: true },
   });
 
@@ -26,11 +28,11 @@ async function main() {
     return;
   }
 
-  const passwordHash = await hash(BOOTSTRAP_ADMIN_PASSWORD, 12);
+  const passwordHash = await hash(password, 12);
 
   const user = await prisma.user.create({
     data: {
-      email: BOOTSTRAP_ADMIN_EMAIL,
+      email,
       name: "Admin",
       passwordHash,
     },
