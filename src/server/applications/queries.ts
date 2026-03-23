@@ -147,6 +147,25 @@ export async function getApplicationForUser(
   });
 }
 
+export async function getTrackedApplicationForPosting(
+  userId: string,
+  posting: {
+    company: string;
+    role: string;
+    jobUrl: string;
+  },
+): Promise<{ id: string } | null> {
+  return prisma.application.findFirst({
+    where: {
+      userId,
+      company: posting.company,
+      role: posting.role,
+      jobUrl: posting.jobUrl,
+    },
+    select: { id: true },
+  });
+}
+
 export async function listTagsForUser(userId: string): Promise<QueryResult<UserTag[]>> {
   try {
     const data = await prisma.tag.findMany({

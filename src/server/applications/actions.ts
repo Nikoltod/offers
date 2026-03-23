@@ -2,10 +2,20 @@
 
 import { ApplicationStatus, Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-import { CreateApplicationInput, createApplicationSchema } from "@/lib/validators/application";
+import {
+  CreateApplicationInput,
+  createApplicationSchema,
+  deleteApplicationSchema,
+  trackDemoJobPostingSchema,
+} from "@/lib/validators/application";
+import {
+  getTrackedApplicationForPosting,
+} from "@/server/applications/queries";
 import { requireUserSession } from "@/server/auth/session";
 import { prisma } from "@/server/db/prisma";
+import { getDemoJobPostingBySlug } from "@/server/job-postings/catalog";
 
 type CreateApplicationFieldErrors = Partial<Record<keyof CreateApplicationInput, string[]>>;
 type ValidationIssue = {
@@ -133,4 +143,132 @@ export async function createApplicationAction(
       message: "Unexpected error. Please try again.",
     };
   }
+}
+
+export async function trackDemoJobPostingAction(formData: FormData) {
+  const session = await requireUserSession();
+
+  const parsed = trackDemoJobPostingSchema.safeParse({
+    slug: formData.get("slug"),
+  });
+
+  if (!parsed.success) {
+    redirect("/dashboard");
+  }
+
+  const posting = getDemoJobPostingBySlug(parsed.data.slug);
+
+  if (!posting) {
+    redirect("/dashboard");
+  }
+
+  const existingApplication = await getTrackedApplicationForPosting(session.user.id, posting);
+
+  if (existingApplication) {
+    redirect(`/dashboard/${existingApplication.id}`);
+  }
+
+  const application = await prisma.$transaction(async (transaction) => {
+    const createdApplication = await transaction.application.create({
+      data: {
+        userId: session.user.id,
+        company: posting.company,
+        role: posting.role,
+        location: posting.location,
+        salaryRange: posting.salaryRange,
+        jobUrl: posting.jobUrl,
+        status: posting.status,
+        notes: posting.summary,
+        appliedDate: new Date(posting.appliedDate),
+        nextActionDate: posting.nextActionDate ? new Date(posting.nextActionDate) : undefined,
+      },
+      select: { id: true },
+    });
+
+    if (posting.tags.length > 0) {
+      await transaction.tag.createMany({
+        data: posting.tags.map((name) => ({
+          userId: session.user.id,
+          name,
+        })),
+        skipDuplicates: true,
+      });
+
+      const tags = await transaction.tag.findMany({
+        where: {
+          userId: session.user.id,
+          name: { in: posting.tags },
+        },
+        select: { id: true },
+      });
+
+      if (tags.length > 0) {
+        await transaction.applicationTag.createMany({
+          data: tags.map((tag) => ({
+            applicationId: createdApplication.id,
+            tagId: tag.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    return createdApplication;
+  });
+
+  revalidatePath("/dashboard");
+  redirect(`/dashboard/${application.id}`);
+}
+
+export async function untrackDemoJobPostingAction(formData: FormData) {
+  const session = await requireUserSession();
+
+  const parsed = trackDemoJobPostingSchema.safeParse({
+    slug: formData.get("slug"),
+  });
+
+  if (!parsed.success) {
+    redirect("/dashboard");
+  }
+
+  const posting = getDemoJobPostingBySlug(parsed.data.slug);
+
+  if (!posting) {
+    redirect("/dashboard");
+  }
+
+  const existingApplication = await getTrackedApplicationForPosting(session.user.id, posting);
+
+  if (!existingApplication) {
+    redirect(`/dashboard/postings/${posting.slug}`);
+  }
+
+  await prisma.application.delete({
+    where: { id: existingApplication.id },
+  });
+
+  revalidatePath("/dashboard");
+  redirect(`/dashboard/postings/${posting.slug}`);
+}
+
+export async function deleteApplicationAction(formData: FormData) {
+  const session = await requireUserSession();
+
+  const parsed = deleteApplicationSchema.safeParse({
+    applicationId: formData.get("applicationId"),
+  });
+
+  if (!parsed.success) {
+    redirect("/dashboard");
+  }
+
+  await prisma.application.deleteMany({
+    where: {
+      id: parsed.data.applicationId,
+      userId: session.user.id,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
 }

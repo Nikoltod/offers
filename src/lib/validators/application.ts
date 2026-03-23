@@ -86,4 +86,13 @@ export const createApplicationSchema = z
     }
   });
 
+export const trackDemoJobPostingSchema = z.object({
+  slug: z.string().trim().min(1, "Posting slug is required").max(120),
+});
+
+export const deleteApplicationSchema = z.object({
+  applicationId: z.string().trim().min(1, "Application id is required").max(191),
+});
+
 export type CreateApplicationInput = z.infer<typeof createApplicationSchema>;
+export type TrackDemoJobPostingInput = z.infer<typeof trackDemoJobPostingSchema>;

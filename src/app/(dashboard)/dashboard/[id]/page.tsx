@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { ApplicationStatus } from "@prisma/client";
 import { notFound } from "next/navigation";
 
+import { deleteApplicationAction } from "@/server/applications/actions";
 import { requireUserSession } from "@/server/auth/session";
 import { getApplicationForUser } from "@/server/applications/queries";
 
@@ -41,6 +43,20 @@ export default async function ApplicationDetailPage({ params }: Props) {
           <span className="shrink-0 rounded-full bg-zinc-100 px-3 py-1 text-sm font-medium">
             {statusLabel(application.status)}
           </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <form action={deleteApplicationAction}>
+            <input type="hidden" name="applicationId" value={application.id} />
+            <button
+              type="submit"
+              className="rounded-md border border-red-300 px-4 py-2 text-sm text-red-700"
+            >
+              {application.status === ApplicationStatus.WISHLIST
+                ? "Untrack from wishlist"
+                : "Delete application"}
+            </button>
+          </form>
         </div>
 
         <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
