@@ -1,36 +1,119 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Offers
 
-## Getting Started
+Job application tracker built with Next.js, NextAuth, Prisma, PostgreSQL, and Tailwind.
 
-First, run the development server:
+## Requirements
+
+- Node.js 20+
+- npm 10+
+- PostgreSQL 14+
+
+## Local setup
+
+1. Install dependencies
+
+```bash
+npm ci
+```
+
+2. Create env file
+
+```bash
+cp .env.example .env
+```
+
+3. Run migrations
+
+```bash
+npm run prisma:migrate
+```
+
+4. Seed demo data (local/dev)
+
+```bash
+npm run seed
+```
+
+5. Start the app
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Demo credentials after seed:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- email: admin@local.dev
+- password: password123
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Environment variables
 
-## Learn More
+See [.env.example](.env.example) for all variables.
 
-To learn more about Next.js, take a look at the following resources:
+Required in production:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- DATABASE_URL
+- AUTH_SECRET (minimum 16 chars)
+- NEXTAUTH_URL
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+Optional:
 
-## Deploy on Vercel
+- ALLOW_DEMO_AUTH (must be false in production)
+- BOOTSTRAP_ADMIN_EMAIL
+- BOOTSTRAP_ADMIN_PASSWORD
+- ALLOW_PROD_SEED (default false)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Seeding and bootstrap strategy
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- `npm run seed`: development/demo seed. It is blocked in production unless `ALLOW_PROD_SEED=true`.
+- `npm run bootstrap:admin`: one-time admin bootstrap for production when `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` are set.
+
+Recommended production flow:
+
+1. Deploy application code.
+2. Run `npm run prisma:migrate:deploy`.
+3. Run `npm run bootstrap:admin` once.
+4. Remove bootstrap password from secrets after first login.
+
+## CI/CD to Hetzner
+
+Workflow file: [.github/workflows/ci-cd.yml](.github/workflows/ci-cd.yml)
+
+Pipeline behavior:
+
+- Pull requests: install, generate Prisma client, lint, typecheck, build.
+- Push to `main`: run CI, then deploy over SSH to Hetzner.
+
+Required GitHub secrets:
+
+- HETZNER_HOST
+- HETZNER_USER
+- HETZNER_SSH_KEY
+- HETZNER_PORT
+- HETZNER_APP_DIR
+- PROD_DATABASE_URL
+- PROD_AUTH_SECRET
+- PROD_NEXTAUTH_URL
+- PROD_ALLOW_DEMO_AUTH (set to `false`)
+- BOOTSTRAP_ADMIN_EMAIL (optional)
+- BOOTSTRAP_ADMIN_PASSWORD (optional)
+
+Server deploy script used by workflow: [scripts/deploy.sh](scripts/deploy.sh)
+
+## Manual production deploy on Hetzner
+
+```bash
+cd /path/to/offers
+npm ci
+npm run prisma:generate
+npm run prisma:migrate:deploy
+npm run build
+npm run start
+```
+
+Use a process manager (`pm2` or `systemd`) and a reverse proxy (`nginx` or `caddy`) with TLS.
+
+## Quality checks
+
+```bash
+npm run ci
+```
