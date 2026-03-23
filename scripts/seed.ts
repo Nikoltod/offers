@@ -1,6 +1,7 @@
-import { ApplicationStatus } from "@prisma/client";
-import { prisma } from "@/server/db/prisma";
 import { hash } from "bcryptjs";
+
+import { listDemoJobPostings } from "@/server/job-postings/catalog";
+import { prisma } from "@/server/db/prisma";
 
 const DEMO_USER_EMAIL = "admin@local.dev";
 const DEMO_USER_PASSWORD = "password123";
@@ -8,69 +9,6 @@ const DEMO_USER_PASSWORD = "password123";
 function isProdSeedAllowed() {
   return process.env.ALLOW_PROD_SEED === "true";
 }
-
-const demoPostings = [
-  {
-    company: "Northstar Labs",
-    role: "Platform Engineer",
-    location: "Remote - EU",
-    salaryRange: "$95,000 - $120,000",
-    jobUrl: "https://northstar-labs.example/jobs/platform-engineer",
-    status: ApplicationStatus.WISHLIST,
-    appliedDate: new Date("2026-03-01"),
-    nextActionDate: new Date("2026-03-18"),
-    notes: "Demo posting for infrastructure-focused role with Kubernetes and observability work.",
-    tags: ["platform", "kubernetes", "remote"],
-  },
-  {
-    company: "Fjord Analytics",
-    role: "Data Platform Engineer",
-    location: "Berlin, Germany",
-    salaryRange: "$88,000 - $110,000",
-    jobUrl: "https://fjord-analytics.example/careers/data-platform-engineer",
-    status: ApplicationStatus.APPLIED,
-    appliedDate: new Date("2026-02-24"),
-    nextActionDate: new Date("2026-03-19"),
-    notes: "Demo posting focused on ETL pipelines, warehouse modeling, and Python services.",
-    tags: ["data", "python", "etl"],
-  },
-  {
-    company: "LatticeForge",
-    role: "Frontend Engineer",
-    location: "Sofia, Bulgaria",
-    salaryRange: "$70,000 - $90,000",
-    jobUrl: "https://latticeforge.example/jobs/frontend-engineer",
-    status: ApplicationStatus.TECHNICAL,
-    appliedDate: new Date("2026-02-20"),
-    nextActionDate: new Date("2026-03-21"),
-    notes: "Demo posting with React, design systems, and dashboard-heavy UI work.",
-    tags: ["frontend", "react", "design-system"],
-  },
-  {
-    company: "Copper Harbor AI",
-    role: "Product Engineer",
-    location: "Remote - US",
-    salaryRange: "$115,000 - $145,000",
-    jobUrl: "https://copperharbor-ai.example/openings/product-engineer",
-    status: ApplicationStatus.HR,
-    appliedDate: new Date("2026-02-18"),
-    nextActionDate: new Date("2026-03-17"),
-    notes: "Demo posting for shipping internal AI tools with strong product ownership.",
-    tags: ["product", "full-stack", "ai"],
-  },
-  {
-    company: "Beacon Ledger",
-    role: "Backend Engineer",
-    location: "London, UK",
-    salaryRange: "$100,000 - $130,000",
-    jobUrl: "https://beacon-ledger.example/careers/backend-engineer",
-    status: ApplicationStatus.OFFER,
-    appliedDate: new Date("2026-02-10"),
-    nextActionDate: new Date("2026-03-22"),
-    notes: "Demo posting around event-driven systems, APIs, and financial data processing.",
-    tags: ["backend", "apis", "finance"],
-  },
-] as const;
 
 async function main() {
   if (process.env.NODE_ENV === "production" && !isProdSeedAllowed()) {
@@ -111,13 +49,34 @@ async function main() {
     where: { userId: user.id },
   });
 
+  const demoPostings = listDemoJobPostings().slice(0, 5);
+
   let createdCount = 0;
   for (const posting of demoPostings) {
-    const { tags, ...applicationData } = posting;
+    const {
+      company,
+      role,
+      location,
+      salaryRange,
+      jobUrl,
+      status,
+      summary,
+      tags,
+      appliedDate,
+      nextActionDate,
+    } = posting;
 
     const app = await prisma.application.create({
       data: {
-        ...applicationData,
+        company,
+        role,
+        location,
+        salaryRange,
+        jobUrl,
+        status,
+        notes: summary,
+        appliedDate: new Date(appliedDate),
+        nextActionDate: nextActionDate ? new Date(nextActionDate) : undefined,
         userId: user.id,
       },
     });

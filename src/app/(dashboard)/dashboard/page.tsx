@@ -11,6 +11,7 @@ import { DASHBOARD_SORT_CONFIG, DashboardSort } from "@/lib/constants/dashboard-
 import { dashboardFiltersSchema } from "@/lib/validators/dashboard-filters";
 import { requireUserSession } from "@/server/auth/session";
 import { listApplicationsForUser, listTagsForUser } from "@/server/applications/queries";
+import { listDemoJobPostings } from "@/server/job-postings/catalog";
 
 type DashboardPageProps = {
   searchParams?: Record<string, string | string[] | undefined>;
@@ -74,6 +75,7 @@ function buildDashboardHref(
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   const session = await requireUserSession();
+  const jobPostings = listDemoJobPostings();
 
   const parsedFilters = dashboardFiltersSchema.safeParse({
     q: firstQueryValue(searchParams?.q),
@@ -120,6 +122,50 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       ) : null}
 
       <CreateApplicationForm />
+
+      <section className="space-y-3 rounded-lg border border-zinc-200 p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold">Suggested job postings</h2>
+            <p className="text-sm text-zinc-600">
+              Static demo content kept in a separate server-only catalog.
+            </p>
+          </div>
+          <span className="text-sm text-zinc-500">{jobPostings.length} postings</span>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {jobPostings.map((posting) => (
+            <article key={posting.slug} className="rounded-lg border border-zinc-200 p-4">
+              <div className="space-y-1">
+                <h3 className="font-semibold text-zinc-900">{posting.role}</h3>
+                <p className="text-sm text-zinc-600">{posting.company}</p>
+                <p className="text-sm text-zinc-500">{posting.location}</p>
+              </div>
+
+              <p className="mt-3 text-sm text-zinc-700">{posting.summary}</p>
+
+              <div className="mt-3 flex flex-wrap gap-1">
+                {posting.tags.map((tag) => (
+                  <span key={tag} className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-4 flex items-center justify-between gap-3 text-sm">
+                <span className="text-zinc-500">{posting.salaryRange ?? "Salary not listed"}</span>
+                <Link
+                  href={`/dashboard/postings/${posting.slug}`}
+                  className="rounded-md border border-zinc-300 px-3 py-1.5"
+                >
+                  View details
+                </Link>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section className="rounded-lg border border-zinc-200 p-4">
         <form method="get" className="grid gap-4 md:grid-cols-4">
