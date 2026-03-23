@@ -1,0 +1,88 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/job_tracker?schema=public
+      AUTH_SECRET: ci-build-secret-123456
+      NEXTAUTH_URL: http://localhost:3000
+      ALLOW_DEMO_AUTH: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Lint, typecheck, build
+        run: npm run ci
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Hetzner via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_DIR: ${{ secrets.HETZNER_APP_DIR }}
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          PROD_AUTH_SECRET: ${{ secrets.PROD_AUTH_SECRET }}
+          PROD_NEXTAUTH_URL: ${{ secrets.PROD_NEXTAUTH_URL }}
+          PROD_ALLOW_DEMO_AUTH: ${{ secrets.PROD_ALLOW_DEMO_AUTH }}
+          BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.BOOTSTRAP_ADMIN_EMAIL }}
+          BOOTSTRAP_ADMIN_PASSWORD: ${{ secrets.BOOTSTRAP_ADMIN_PASSWORD }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          port: ${{ secrets.HETZNER_PORT || 22 }}
+          envs: APP_DIR,PROD_DATABASE_URL,PROD_AUTH_SECRET,PROD_NEXTAUTH_URL,PROD_ALLOW_DEMO_AUTH,BOOTSTRAP_ADMIN_EMAIL,BOOTSTRAP_ADMIN_PASSWORD
+          script_stop: true
+          script: |
+            set -euo pipefail
+            if [ -z "${APP_DIR:-}" ]; then
+              echo "HETZNER_APP_DIR secret is required"
+              exit 1
+            fi
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              echo "Expected a git checkout at $APP_DIR on the server"
+              echo "Clone the repository on the Hetzner server first, then rerun the workflow"
+              exit 1
+            fi
+
+            cd "$APP_DIR"
+
+            {
+              printf 'DATABASE_URL=%s\n' "$PROD_DATABASE_URL"
+              printf 'AUTH_SECRET=%s\n' "$PROD_AUTH_SECRET"
+              printf 'NEXTAUTH_URL=%s\n' "$PROD_NEXTAUTH_URL"
+              printf 'ALLOW_DEMO_AUTH=%s\n' "${PROD_ALLOW_DEMO_AUTH:-false}"
+              printf 'BOOTSTRAP_ADMIN_EMAIL=%s\n' "${BOOTSTRAP_ADMIN_EMAIL:-}"
+              printf 'BOOTSTRAP_ADMIN_PASSWORD=%s\n' "${BOOTSTRAP_ADMIN_PASSWORD:-}"
+            } > .env.production
+
+            APP_DIR="$APP_DIR" bash scripts/deploy.sh main
+
+            if [ -n "${BOOTSTRAP_ADMIN_EMAIL:-}" ] && [ -n "${BOOTSTRAP_ADMIN_PASSWORD:-}" ]; then
+              npm run bootstrap:admin
+            fi
